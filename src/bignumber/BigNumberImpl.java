@@ -16,12 +16,14 @@ public class BigNumberImpl implements BigNumber {
     }
 
     public BigNumberImpl() {
-        this.head = null;
-        this.tail = null;
+        DigitNode node=new DigitNode(0);
+        this.head = node;
+        this.tail = node;
         this.size = 0;
     }
 
     public BigNumberImpl(String number) {
+        this();
         if (!isValidNumber(number)) {
             throw new IllegalArgumentException("Invalid number format");
         }
@@ -98,7 +100,19 @@ public class BigNumberImpl implements BigNumber {
         if (digit < 0 || digit > 9) {
             throw new IllegalArgumentException("Digit must be between 0 and 9");
         }
-        addDigitToFront(digit);
+        // Create a new node for the digit
+        DigitNode newNode = new DigitNode(digit);
+
+        // If the list is empty, set the new node as both head and tail
+        if (head == null) {
+            head = newNode;
+            tail = newNode;
+        } else {
+            int result=newNode.digit+digit;
+            // Insert the new node after the current tail
+            tail = new DigitNode(result);
+        }
+        size++;
     }
 
     @Override
