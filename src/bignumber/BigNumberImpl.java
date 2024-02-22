@@ -19,43 +19,39 @@ public class BigNumberImpl implements BigNumber {
         DigitNode node=new DigitNode(0);
         this.head = node;
         this.tail = node;
-        this.size = 0;
+        this.size = 1;
     }
 
-    public BigNumberImpl(String number) {
-        this();
-        if (!isValidNumber(number)) {
+    // Constructor that takes a string representation of the number
+    public BigNumberImpl(String numberStr) {
+        if (!isValidNumber(numberStr)) {
             throw new IllegalArgumentException("Invalid number format");
         }
-
-        // Remove leading zeros
-        int startIndex = 0;
-        while (startIndex < number.length() - 1 && number.charAt(startIndex) == '0') {
-            startIndex++;
+        // Initialize the linked list with the digits from the string
+        for (int i = 0; i <numberStr.length(); i++) {
+            int digit = Character.getNumericValue(numberStr.charAt(i));
+            this.addDigitToFront(digit);
         }
-        number = number.substring(startIndex);
 
-        // Create linked list representation
-        for (int i = number.length() - 1; i >= 0; i--) {
-            int digit = Character.getNumericValue(number.charAt(i));
-            addDigitToFront(digit);
-        }
     }
 
     private boolean isValidNumber(String number) {
         return number.matches("\\d+");
     }
 
+
     private void addDigitToFront(int digit) {
         DigitNode newNode = new DigitNode(digit);
-        if (head == null) {
-            head = newNode;
-            tail = newNode;
-        } else {
-            newNode.next = head;
-            head = newNode;
+        if (this.head == null) {
+            this.head = newNode;
+            size++;
         }
-        size++;
+        else if(this.head.digit==0) {this.head=newNode;}
+        else{
+                newNode.next = this.head;
+                this.head = newNode;
+                size++;
+            }
     }
 
     @Override
@@ -66,40 +62,34 @@ public class BigNumberImpl implements BigNumber {
     @Override
     public void shiftLeft(int shifts) {
         if (shifts < 0) {
-            shiftRight(-shifts);
+            shiftRight(-shifts); // Convert to right shift if shifts are negative
             return;
+        }
+
+        if (this.head == null || (this.head.digit == 0 && this.head.next == null)) {
+            // If the number is 0, shifting left does not change its value
+            return;
+        }
+
+        DigitNode current = this.head;
+        while (current.next != null) {
+            // Move to the last digit
+            current = current.next;
         }
 
         for (int i = 0; i < shifts; i++) {
-            addDigitToFront(0);
+            System.out.println(current.digit);
+            // Append zeros to the end of the list for each shift
+            current.next = new DigitNode(0);
+            current = current.next;
+            System.out.println(this);
         }
     }
-
-    @Override
-    public void shiftRight(int shifts) {
-        if (shifts < 0) {
-            shiftLeft(-shifts);
-            return;
-        }
-
-        if (shifts >= size) {
-            head = null;
-            tail = null;
-            size = 0;
-            return;
-        }
-
-        for (int i = 0; i < shifts; i++) {
-            head = head.next;
-            size--;
-        }
-    }
-
-    @Override
-    public void addDigit(int digit) {
+    public void appendDigit(int digit) {
         if (digit < 0 || digit > 9) {
             throw new IllegalArgumentException("Digit must be between 0 and 9");
         }
+
         // Create a new node for the digit
         DigitNode newNode = new DigitNode(digit);
 
@@ -108,11 +98,86 @@ public class BigNumberImpl implements BigNumber {
             head = newNode;
             tail = newNode;
         } else {
-            int result=newNode.digit+digit;
             // Insert the new node after the current tail
-            tail = new DigitNode(result);
+            tail.next = newNode;
+            tail = newNode;
         }
+
         size++;
+    }
+    @Override
+    public void shiftRight(int shifts) {
+        if (shifts < 0) {
+            shiftLeft(-shifts); // Convert to left shift if shifts are negative
+            return;
+        }
+
+        if (this.head == null || (this.head.digit == 0 && this.head.next == null)) {
+            // If the number is 0, shifting right does not change its value
+            return;
+        }
+
+        for (int i = 0; i < shifts; i++) {
+            if (this.head.next == null) {
+                // If there's only one digit left, set the number to 0
+                this.head.digit = 0;
+                break;
+            } else {
+                // Remove the rightmost digit
+                DigitNode prev = null;
+                DigitNode current = this.head;
+                while (current.next != null) {
+                    prev = current;
+                    current = current.next;
+                }
+                if (prev != null) {
+                    prev.next = null; // Remove the last digit
+                }
+            }
+            size++;
+        }
+    }
+
+
+    @Override
+    public void addDigit(int digit) throws IllegalArgumentException {
+        // Step 1: Validate the input
+        if (digit < 0 || digit > 9) {
+            throw new IllegalArgumentException("The digit must be between 0 and 9");
+        }
+
+        // Special case: Adding a digit to 0
+        if (this.head.digit == 0 && this.head.next == null) {
+            this.head.digit = digit;
+            return;
+        }
+
+        // Step 2: Add the digit to the rightmost node
+        int carry = digit;
+        DigitNode current = this.head;
+
+        // Traverse to the rightmost node
+        while (current.next != null) {
+            current = current.next;
+        }
+
+        // Add the digit to the rightmost node and calculate the carry
+        int sum = current.digit + carry;
+        current.digit = sum % 10;
+        carry = sum / 10;
+
+        // Step 3: Propagate the carry leftwards
+        while (carry > 0) {
+            if (current.next == null) {
+                current.next = new DigitNode(carry % 10);
+                carry /= 10;
+            } else {
+                current = current.next;
+                sum = current.digit + carry;
+                current.digit = sum % 10;
+                carry = sum / 10;
+            }
+        }
     }
 
     @Override
@@ -174,7 +239,7 @@ public class BigNumberImpl implements BigNumber {
         StringBuilder sb = new StringBuilder();
         DigitNode current = head;
         while (current != null) {
-            sb.insert(0, current.digit);
+            sb.insert(sb.length(), current.digit);
             current = current.next;
         }
         return sb.toString();
